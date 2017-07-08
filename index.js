@@ -2,131 +2,135 @@
  * Created by anthony on 06/07/2017.
  */
 class ServerLocation {
-
+    
     constructor(serialized) {
         this.serialized = serialized || {}
         this._type = ServerLocation
     }
-
+    
     getPropertValue(propertyName, defaultValue) {
         return this.serialized[propertyName] || defaultValue
     }
-
+    
     get host() {
         /**
          * "www.bbc.co.uk"
          */
         return this.getPropertValue('host', 'localhost')
     }
-
+    
     get hostname() {
         /***
          * "www.bbc.co.uk"
          */
         this.getPropertValue('host', 'localhost')
     }
-
-
+    
+    
     get href() {
         /***
          * "http://www.bbc.co.uk/news/education-40504754"
          */
         this.getPropertValue('host', 'localhost')
     }
-
+    
     get origin() {
         /***
          * "http://www.bbc.co.uk"
          */
         this.getPropertValue('host', 'localhost')
     }
-
+    
     get pathname() {
         /***
          * "/news/education-40504754"
          */
         this.getPropertValue('host', 'localhost')
     }
-
+    
     get port() {
         return this.getPropertValue('port', '11616')
     }
-
+    
     get protocol() {
         /***
          * "http:"
          */
         return this.getPropertValue('protocol', 'http:')
     }
-
+    
     get reload() {
-
+    
     }
-
-
+    
+    
     get search() {
-
+    
     }
-
+    
     static get default() {
         return new this.type
     }
-
+    
     static get none() {
         return null
     }
-
+    
     static array(...locations) {
-    return locations
-}
-
-static set type(otherType) {
-    this._type = otherType || ServerLocation
-}
-
-static get type() {
-    return this._type
-}
+        return locations
+    }
+    
+    static set type(otherType) {
+        this._type = otherType || ServerLocation
+    }
+    
+    static get type() {
+        return this._type
+    }
 }
 
 const EventEmitter = Emitter
 
 class Renderable {
-
+    
     constructor(name, superClassName) {
-        this.name = name
+        this._label = name
         this.superClassName = superClassName || null
     }
-
+    
+    get label(){
+        return this._label
+    }
+    
     get model() {
         return {}
     }
-
+    
     set mixins(newMixings) {
         this._mixins = newMixings
     }
-
-    get mixins(){
+    
+    get mixins() {
         return this._mixins
     }
-
+    
     static new(className, ...mixins) {
-    let renderable = new Renderable(className)
-    renderable.mixins = mixins
-    return renderable
-}
-
-render(elem) {
-    for(let cls of this.mixins){
-        elem.classList.add(cls)
+        let renderable = new Renderable(className)
+        renderable.mixins = mixins
+        return renderable
     }
-    return elem
-}
+    
+    render(elem) {
+        for (let cls of this.mixins) {
+            elem.classList.add(cls)
+        }
+        return elem
+    }
 }
 
-function renderNav(elem){
+function renderNav(elem) {
     this.render(elem)
-
+    
     console.log('nav mixins:', this.mixins)
     console.dir(elem)
     let $elem = $(elem)
@@ -156,9 +160,9 @@ function renderNav(elem){
     return elem
 }
 
-function renderContainer(elem){
+function renderContainer(elem) {
     this.render(elem)
-
+    
     let $elem = $(elem)
     $elem.empty()
     $elem.append($(`<div class="jumbotron">
@@ -173,11 +177,8 @@ function renderContainer(elem){
     return elem
 }
 
-
 class Application extends EventEmitter {
-
-
-
+    
     constructor(location) {
         super()
         this.location = location || Location.default
@@ -185,83 +186,125 @@ class Application extends EventEmitter {
         this.ID_MASTER = 1
         this.meta = {}
     }
-
-
+    
+    when(...args) {
+        return super.on(...args)
+    }
+    
     generateDeffered() {
         let newId = ++this.ID_MASTER
         let deffered = {uuid: newId}
-
+        
         let promise = new Promise((resolve, reject) => {
             deffered.resolve = resolve
-        deffered.reject = reject
-    })
-
+            deffered.reject = reject
+        })
+        
         deffered.promise = promise
         return deffered
     }
-
+    
     get serialized() {
         return {}
     }
-
-    baseElemNames() {
-        return ['top-nav', 'main', 'footer']
-    }
-
+    
     baseElemTypeNames() {
-        return ['app.navigation', 'app.container', 'app.container']
+        return []
     }
-
-    static get renderers() {
-        return this.RENDERERS
+    
+    static get controllers() {
+        return this.CONTROLLERS
     }
-
+    
+    get controllers(){
+        return this.constructor.CONTROLLERS
+    }
+    
+    static get modelTypes() {
+        return this.MODELS
+    }
+    
     get servers() {
         if (this._servers) return this._servers
         this._servers = [Application.root]
         return this._servers
     }
-
+    
     get first() {
         return Application.root
     }
-
+    
     get last() {
         return _.nth(this.servers, -1)
     }
-
-    listen(server, topic, callback) {
-
+    
+    addController(controller) {
+        this.controllers[controller.label] = controller
     }
-
+    
     renderToDocument(doc) {
         let body = $(document.body.getElementsByTagName('main')[0])
         body.empty()
-
-        for (let [elemName, elemTypeName] of _.zip(this.baseElemNames(), this.baseElemTypeNames())) {
-            let renderer = this.constructor.renderers[elemTypeName]
-            let elem = $(`<${renderer.superName} id="${elemName}" class=""></${renderer.superName}>`)
-
-            renderer.render.call(renderer.type, elem.get(0))
+        
+        for (let elemTypeName of this.baseElemTypeNames()) {
+            let controller = this.constructor.controllers[elemTypeName]
+            let elem = $(`<${controller.tagName} id="${elemTypeName}" class=""></${controller.tagName}>`)
             body.append(elem)
+    
+            controller.render(elem.get(0))
         }
-
+        
     }
-
+    
 }
 
-Application.RENDERERS = {
-    'app.navigation': {
-        type: Renderable.new('Navigation', 'navbar', 'navbar-toggleable-md', 'navbar-light', 'bg-faded'),
-        superName: 'nav',
-        render: renderNav
-    },
-    'app.container': {
-        type: Renderable.new('Main', 'container'),
-        superName: 'main',
-        render: renderContainer
+class Controller extends Renderable {
+    
+    constructor(name, opts){
+        super(name, opts.mixins)
+        this._name = name
+        this.tagName = (opts || {}).tagName || 'div'
+        this.mixins = opts.mixins || []
+    }
+    
+    get elem(){
+        return document.getElementById(this._name)
+    }
+  
+    
+}
+
+class Model {
+    
+    constructor(serialized) {
+        this.serialized = serialized || {}
+    }
+    
+    static get attributeNames() {
+        return []
+    }
+    
+    get elem() {
+        return this.serialized['_elem']
+    }
+    
+    static fromElem(elem, attributeNames) {
+        let serialized = {_elem: elem}
+        attributeNames = attributeNames || []
+        for (let attr of attributeNames) {
+            let dataKey = `data-${attr}`
+            let dataValue = elem.attributes[dataKey] || null
+            if (dataValue !== null) {
+                serialized[attr] = dataValue.nodeValue
+            }
+        }
+        return new this(serialized)
     }
 }
+
+Application.MODELS = {}
+
+Application.CONTROLLERS = {}
 
 class Server extends EventEmitter {
     constructor(location) {
@@ -269,19 +312,17 @@ class Server extends EventEmitter {
         this.location = location
         this._socket = null
     }
-
+    
     get connected() {
         return this._socket === null
     }
-
+    
     connect() {
         return new Promise((resolve, reject) => {
-                resolve(this)
-    })
+            resolve(this)
+        })
     }
-
+    
 }
 
 Application.root = new Server(Location.default)
-app = new Application()
-app.renderToDocument(document)

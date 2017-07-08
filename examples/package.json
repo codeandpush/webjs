@@ -1,0 +1,26 @@
+{
+  "name": "web.js-examples",
+  "version": "1.0.0",
+  "description": "Build web apps with an OO interface",
+  "main": "serve.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codeandpush/webjs.git"
+  },
+  "keywords": [
+    "application",
+    "website"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/codeandpush/webjs/issues"
+  },
+  "homepage": "https://github.com/codeandpush/webjs#readme"
+}
