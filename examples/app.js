@@ -310,7 +310,7 @@ class DemoApp extends Application {
     }
     
     showNewAppModal(){
-        return this.showModal({title:'STUFF',
+        return this.showModal({title:'New Application',
         body: _.template(this.constructor.TEMPLATE_MODAL_BODY)(),
         }, DemoAppModel)
     }
