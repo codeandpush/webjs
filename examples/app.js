@@ -3,11 +3,14 @@
  */
 console.log('starting app...')
 
-
 class DemoModel extends Model {
     
-    static get attributeNames() {
-        return ['category', 'label', 'url', 'group']
+    static get ATTR_TYPE_MAP() {
+        let atts = {category: {type:'string', demoValue: 'Cats', label:'Category', description: 'Category', placeholder: 'Category of App'},
+            label:'string',
+            url:'string',
+            group:'string'}
+        return _.merge(atts, Model.BASE_ATTR_TYPE_MAP)
     }
     
     get url(){
@@ -15,7 +18,7 @@ class DemoModel extends Model {
     }
     
     get group(){
-        return this.serialized.group
+        return this.serialized.group || this.serialized.groupLabel
     }
     
     get category(){
@@ -23,20 +26,90 @@ class DemoModel extends Model {
     }
 }
 
+const TEMPLATE_EDIT_APP_MODEL = `
+    <form class="form-horizontal">
+        <% _.forEach(attrMapByPriority, function(attrInfo){ %>
+            <% var infoId = group+'_'+app+'_'+attrInfo.label+'_'+attrInfo.type%>
+            <% if(attrInfo.type === 'string') { %>
+                <div class="form-group">
+                <label for="<%= infoId %>" class="col-sm-2 control-label"><%= attrInfo.description %></label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control" id="<%= infoId %>" data-key="<%= infoId %>" value="<%= attrInfo.value %>" placeholder="<%= attrInfo.placeholder %>">
+                    </div>
+                </div>
+            <% } %>
+            <% if(attrInfo.type === 'text') { %>
+                <div class="form-group">
+                <label for="<%= infoId %>" class="col-sm-2 control-label"><%= attrInfo.description %></label>
+                    <div class="col-sm-10">
+                        <textarea class="form-control col-sm-10" id="<%= infoId %>" data-key="<%= infoId %>" placeholder="<%= attrInfo.placeholder %>" rows="3"><%= attrInfo.value %></textarea>
+                    </div>
+                </div>
+            <% } %>
+        <% }); %>
+    </form>`
+
+class DemoAppModel extends DemoModel {
+    
+    static get ATTR_TYPE_MAP() {
+        let atts = {category: 'string', label:'string', url:'string', group:'string', 'thumbnail': 'string'}
+        return _.merge(atts, DemoModel.ATTR_TYPE_MAP)
+    }
+    
+    editorElemHtml(opts){
+        opts = opts || {}
+        let attrMap = opts.attrMap = {}
+        for(let [attrName, attrType] of _.toPairs(this.constructor.ATTR_TYPE_MAP)){
+            let attrInfo = !_.isObject(attrType) ? {type: attrType, order: -1} : attrType
+    
+            if(!_.isObject(attrType)){
+                attrInfo.label = attrInfo.description = attrName
+                attrInfo.type = attrType
+                attrInfo.demoValue = ""
+                attrInfo.placeholder = attrName
+            }
+            attrInfo.value = this[attrName]
+            attrMap[attrName] = attrInfo
+        }
+        opts.app = this.name
+        opts.group = this.group
+        opts.attrMapByPriority = _.sortBy(opts.attrMap, (m) => m.order)
+        return _.template(TEMPLATE_EDIT_APP_MODEL)(opts)
+    }
+    
+    get category(){
+        return 'app'
+    }
+    
+    get thumbnail(){
+        return this.serialized.thumbnail
+    }
+    
+    static fromElem(elem, attributeNames) {
+        let serialized = {_elem: elem}
+        if(_.isArray(attributeNames)){
+            serialized = _.merge(Model.fromElem(elem, attributeNames).serialized)
+        } else {
+            for(let [attr, attrType] of _.toPairs(this.ATTR_TYPE_MAP)){
+                attrType = _.isString(attrType) ? attrType : attrType.type
+                let elem = $(`[data-key$=${attr}_${attrType}`).get(0)
+                if(!elem) continue
+                serialized[attr] = elem.value
+            }
+        }
+        return new this(serialized)
+    }
+}
+
 const APP_LIST_TEMPLATE = `
-            <div class="page-header">
-  <h1>Demo <small>concepts</small></h1>
+<div class="page-header">
+  <h1>Demo <small>web apps</small></h1>
 </div>
 <ul class="nav nav-pills">
     <% let groupPairs = _.sortBy(_.toPairs(groups), ([label, g]) => label) %>
-    <% console.log(groupPairs) %>
 
-    <% if(_.first(groupPairs)){ %>
-        <li role="presentation" class="active"><a data-toggle="pill" data-category="group" data-label="<%= _.first(groupPairs)[0] %>" href="#<%= _.first(groupPairs)[0] %>"><%= _.first(groupPairs)[1].label %></a></li>
-    <% } %>
-    
-   <% _.forEach(_.tail(groupPairs), function(group){ %>
-        <li role="presentation" ><a data-toggle="pill" data-category="group" href="#<%= group[0] %>"><%= group[1].label %></a></li>
+   <% _.forEach(groupPairs, function(group){ %>
+        <li role="presentation" ><a data-toggle="pill" data-category="group" href="#<%= group[0] %>"><%= group[1].title %></a></li>
    <% }); %>
 </ul>
 
@@ -46,25 +119,22 @@ const APP_LIST_TEMPLATE = `
         <div class="tab-pane fade in active" id="<%= key %>">
             <ul class="media-list">
             <% _.forEach(group.apps, function(app){ %>
-              <!--<a href="#" class="list-group-item" data-category="app" data-label="<%= app.label %>" data-url="<%= app.url %>">-->
-                <!--<h4 class="list-group-item-heading"><%= app.title %></h4>-->
-                <!--<p class="list-group-item-text"><%= app.description %></p>-->
-              <!--</a>-->
               
-              
-            <li class="media">
-              
-              <div class="media-left media-middle">
-                <a href="#" data-category="app" data-label="<%= app.label %>" data-url="<%= app.url %>" data-group="<%= key %>">
-                  <img width="64px" height="64px" class="media-object" src="<%= app.thumbnail || '../examples/no_app.png' %>" alt="app image">
-                </a>
-              </div>
-              <div class="media-body">
-                <h4 class="media-heading"><a href="#" data-category="app" data-label="<%= app.label %>" data-url="<%= app.url %>" data-group="<%= key %>"><%= app.title %></a></h4>
-                <p><%= app.description %></p>
-              </div>
-            </li>
-            
+                <li class="media" <%= _.values(app.toDataAttrs()).join(' ') %> >
+                  <div class="media-left media-middle">
+                    <a href="#" data-category="app" data-title="<%= app.title %>" data-description="<%= app.description %>" data-label="<%= app.label %>" data-url="<%= app.url %>" data-group="<%= key %>">
+                      <img width="64px" height="64px" class="media-object" src="<%= app.thumbnail || '../examples/no_app.png' %>" alt="app image">
+                    </a>
+                  </div>
+                  <div class="media-body">
+                    <h4 class="media-heading"><a href="#" data-category="app" data-label="<%= app.label %>" data-url="<%= app.url %>" data-title="<%= app.title %>" data-description="<%= app.description %>" data-group="<%= key %>"><%= app.title %></a></h4>
+                    <p><%= app.description %></p>
+                    <div class="btn-group btn-group-xs pull-right" role="group" aria-label="...">
+                      <button type="button" class="btn btn-primary" data-category="action" data-emit="edit_app">Edit</button>
+                      <button type="button" class="btn btn-default" data-category="action" data-emit="share_app">Share</button>
+                    </div>
+                  </div>
+                </li>
               
             <% }); %>
             </ul>
@@ -77,81 +147,78 @@ const APP_LIST_TEMPLATE = `
 
 class DemoPicker extends Controller {
     
-    constructor(name, opts) {
+    constructor(name, opts){
         super(name, opts)
-        this._currentAd = null
-    
-        let catApps = [
-            {
+        this._apps = [
+            new DemoAppModel({
+                groupLabel: 'Cats',
                 title: 'CatZillar 5000', html: '<h6>CATS RULE</h6>',
                 label: 'catzillar', description: 'all cat info in one place',
                 url: 'http://edey.ng',
-                thumbnail: null,
-            },
-            {
+                thumbnail: '../examples/app_icon2.ico',
+            }),
+            new DemoAppModel({
+                groupLabel: 'Cats',
                 title: 'Kitty Land', html: '<h6>Kitty RULE</h6>',
                 label: 'kitty_land', description: 'cat lips catalogue',
                 url: 'https://en.wikipedia.org/wiki/Main_Page',
-                thumbnail: null,
-            },
+                thumbnail: '../examples/app_icon1.ico',
+            }),
+            new DemoAppModel({
+                groupLabel: 'Dogs',
+                title: 'Dog World', html: '<h6>Dogs RULE</h6>',
+                label: 'dog_world', description: 'Different breeds of dog',
+                url: 'https://en.wikipedia.org/wiki/Dog',
+                thumbnail: '../examples/app_icon1.ico',
+            }),
         ]
+    }
     
-        this.groups = {
-            'dogs': {label: 'Dogs', apps: [], url: ''},
-            'cats': {label: 'Cats', apps: catApps, url: ''},
+    get apps(){
+        return this._apps
+    }
+    
+    get groups(){
+        this._groups = {}
+        for(let [gn, data] of _.toPairs(_.groupBy(this.apps, (a) => a.group.toLowerCase()))){
+            this._groups[gn] = {apps: data, label: gn, title: data[0].group}
         }
+        return this._groups
     }
     
-    get ads(){
-        return []
-    }
-    
-    set currentAd(ad){
-    
-    }
-    
-    get currentAd(){
-        return this._currentAd
-    }
-    
-    get adElem() {
-        return $(this.elem).find('.advert').get(0)
+    getTabElem(groupLabel){
+        return document.getElementById(groupLabel.toLowerCase())
     }
     
     render(elem) {
         super.render(elem)
-        console.dir(elem.parent)
-        $(elem).parent().get(0).style.height = '100%'
+        let $elem = $(elem)
+        
+        $elem.parent().get(0).style.height = '100%'
         
         elem.style.height = '100%'
         elem.style.position = 'relative'
-        //elem.style.display = 'inline-block'
-        //elem.style.marginLeft = '16px'
         elem.style.backgroundColor = 'white'
-    
         
-    
-        let $elem = $(elem)
         $elem.append($(_.template(APP_LIST_TEMPLATE)({groups: this.groups})))
     
         $elem.append($(`<nav aria-label="...">
-  <ul class="pager">
-    <li class="previous disabled"><a href="#"><span aria-hidden="true">&larr;</span> Older</a></li>
-    <li class="next"><a href="#">Newer <span aria-hidden="true">&rarr;</span></a></li>
-  </ul>
-</nav>`))
+      <ul class="pager">
+        <li class="previous disabled"><a href="#"><span aria-hidden="true">&larr;</span> Older</a></li>
+        <li class="next disabled"><a href="#">Newer <span aria-hidden="true">&rarr;</span></a></li>
+      </ul>
+    </nav>`))
         
-        $elem.append($(`<div class="advert" data-category="ad" style="background-color: aquamarine;height: 20%;width:92%;position: absolute;bottom: 30px;">
-
-</div>`))
     
         $elem.append($(`
-<div class="row" style="padding: 16px; position: absolute;bottom: 16px;width: 100%;">
-  <button type="button" id="add_ad_btn" class="col-sx-6 btn btn-warning">Post Ad</button>
-  <button type="button" id="add_app_btn" class="col-sx-6 btn btn-primary pull-right">Add Application</button>
-</div>
-`))
+        <div class="row" style="padding: 16px; position: absolute;bottom: 16px;width: 100%;">
+          <button type="button" id="add_app_btn" class="col-sx-12 btn btn-primary text-center" style="width: 100%">Add Application</button>
+        </div>
+        `))
         
+        $elem.ready( ()=>{
+            this.getTabElem(this.apps[0].group).classList.add('active')
+        })
         return elem
     }
 }
@@ -170,7 +237,7 @@ class DemoView extends Controller {
     render(elem) {
         super.render(elem)
         
-        let iframe = $(`<iframe src="https://spin.atomicobject.com/2015/12/23/swift-uipageviewcontroller-tutorial/"></iframe>`).get(0)
+        let iframe = $(`<iframe></iframe>`).get(0)
     
         iframe.height = '100%'
         iframe.width = '100%'
@@ -209,88 +276,156 @@ class DemoApp extends Application {
         models['default'] = DemoModel
         models['group'] = DemoModel
         models['app'] = DemoModel
-        models['ad'] = DemoModel
     }
     
-    baseElemTypeNames() {
-        return ['demo_picker', 'demo_view']
+    baseControllers() {
+        return [this.demoPicker, this.demoView]
     }
     
-    attachAccessors() {
+    detachListeners() {
+        console.log('detaching listeners...')
+        $('a[data-category]').off('click')
+        $('#add_app_btn').off('click')
+    }
+    
+    attachListeners() {
+        console.log('attaching listeners...')
         $('a[data-category]').on('click', (event) => {
             let a = $(event.target).closest('a').get(0)
             let modelType = Application.modelTypes[a.attributes['data-category'].nodeValue]
-            let model = modelType.fromElem(a, modelType.attributeNames)
+            let model = modelType.fromElem(a, _.keys(modelType.ATTR_TYPE_MAP))
             $('a[data-category]').removeClass('active')
             a.classList.add('active')
             this.emit('click', model)
         })
         
-        $(app.controllers['demo_picker'].adElem).on('click', (event) => {
-            let ad = event.target
-            let modelType = Application.modelTypes[ad.attributes['data-category'].nodeValue]
-            this.emit('ad_click', modelType.fromElem(ad, modelType.attributeNames))
-        })
-        
         $('#add_app_btn').on('click', (event) => {
-            this.emit('add_app_click')
-        })
-    
-        $('#add_ad_btn').on('click', (event) => {
-            this.emit('add_ad_click')
+            this.emit('add_app_btn_click')
         })
         
-        $('#app_modal_submit').on('click', (event) => {
-            this.emit('app_add')
+        $('button[data-category="action"]').on('click', (event) => {
+            let appModel = DemoAppModel.fromElem($(event.target).closest('[data-category="app"]').get(0), _.keys(DemoAppModel.ATTR_TYPE_MAP))
+            this.emit(event.target.attributes['data-emit'].nodeValue, appModel)
         })
+    }
+    
+    showNewAppModal(){
+        return this.showModal({title:'STUFF',
+        body: _.template(this.constructor.TEMPLATE_MODAL_BODY)(),
+        }, DemoAppModel)
+    }
+    
+    addNewDemoApp(newApp){
+        console.log('adding new app:', newApp)
+        this.demoPicker.apps.push(newApp)
+    
+        this.detachListeners()
+        $(this.demoPicker.elem).empty()
+        this.demoPicker.render(this.demoPicker.elem)
+    
+        this.attachListeners()
     }
 }
 
 app = new DemoApp()
-app.renderToDocument(document)
 
-app.when('ad_click', () => {
-    let demoPicker = app.controllers['demo_picker']
-    console.log('model:', demoPicker.currentAd)
-})
+app.server.connect()
+    .then((server) => {
+        console.log('server connected:', server)
+        server.when('created_demo_app', (newApp) => {
+            console.log('got new app from server:', newApp)
+            app.addNewDemoApp(newApp)
+        })
+    })
 
-app.when('app_add', (newApp) => {
-    console.log('app_add', newApp)
-    $('#myModal').modal('hide')
-})
-
-app.when('add_app_click', () => {
+app.when('add_app_btn_click', () => {
     console.log('add application')
-    $('#myModal').modal('show')
+    app.showNewAppModal()
+        .then((newApp) => {
+            if(!_.isObject(newApp)) return
+            app.addNewDemoApp(newApp)
+        })
 })
 
-app.when('add_ad_click', () => {
-    console.log('post advert')
+app.when('share_app', (theApp) => {
+    app.showModal({title:`Share: ${theApp && theApp.title || 'App' }`,
+        body: `<h3><a href="${theApp.url}" target="_blank" id="share_app_click" class="text-center" style="width: 100%">${theApp.url}</a></h3>`,
+        successBtnId: 'share_app_click',
+        hideFooter: true
+    }, DemoAppModel)
+        .then(() => {
+            console.log('share done')
+        })
+})
+
+app.when('edit_app', (theApp) => {
+    app.showModal({title:`Edit: ${theApp && theApp.title || 'App' }`,
+        body: theApp.editorElemHtml(),
+        contextualClass: 'info',
+    }, DemoAppModel)
+        .then((newApp) => {
+            if(!_.isObject(newApp)) return
+            
+            
+            let dApp = _.find(app.demoPicker.apps, {url: newApp.url})
+            if(_.isObject(dApp)){
+                dApp.serialized = newApp.serialized
+                app.detachListeners()
+                $(app.demoPicker.elem).empty()
+                app.demoPicker.render(app.demoPicker.elem)
+                app.attachListeners()
+            }
+        })
 })
 
 app.when('click', (model) => {
     let demoView = app.controllers['demo_view']
-    
-    
-    if(!(model.category === 'app' && _.isString(model.url))) return
-    
-    demoView.src = model.url
-    
-    demoView.iframe.onload = () => {
-        let imgElem = $(model.elem).closest('.media').find('.media-left img').get(0)
-        if(imgElem.src === '../examples/no_app.png') return
-    
-        console.log('getting screenshot...')
-        html2canvas(demoView.elem, {
-            onrendered: function (canvas) {
-                imgElem.src = canvas.toDataURL()
-            },
-            width: 64,
-            height: 64
-        });
+    if(model.category === 'app' && _.isString(model.url)) {
+        demoView.src = model.url
     }
 })
 
-$(() => app.attachAccessors())
+app.renderToDocument(document)
 
+$(() => {
+    app.attachListeners()
+    _.templateSettings.imports.app = app
+})
+
+DemoApp.TEMPLATE_MODAL_BODY = `<form class="form-horizontal">
+                        <div class="form-group">
+                            <label for="_group_string" class="col-sm-2 control-label">Group</label>
+                            <div class="col-sm-10">
+                                <select class="form-control" id="_group_string" data-key="_group_string">
+                                    <% _.forEach(app.demoPicker.groups, function(group){ %>
+                                    <option><%= group.title %></option>
+                                    <% }); %>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="_name_string" class="col-sm-2 control-label">App name</label>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control" id="_name_string" data-key="_name_string" value="Sample App" placeholder="My App">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="_url_string" class="col-sm-2 control-label">Homepage</label>
+                            <div class="col-sm-10">
+                                <input type="url" class="form-control" id="_url_string" data-key="_url_string" value="http://example.com" placeholder="http://myapp.com">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="_thumbnail_string" class="col-sm-2 control-label">Thumbnail</label>
+                            <div class="col-sm-10">
+                                <input type="url" class="form-control" id="_thumbnail_string" data-key="_thumbnail_string" placeholder="http://myapp.com/screenshot.png">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="_description_string" class="col-sm-2 control-label">Description</label>
+                            <div class="col-sm-10">
+                                <textarea class="form-control col-sm-10" id="_description_string" data-key="_description_string" rows="3">Sample app</textarea>
+                            </div>
+                        </div>
+                    </form>`
 
