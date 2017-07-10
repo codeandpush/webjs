@@ -5,7 +5,6 @@ class ServerLocation {
     
     constructor(serialized) {
         this.serialized = serialized || {}
-        this._type = ServerLocation
     }
     
     getPropertValue(propertyName, defaultValue) {
@@ -13,38 +12,22 @@ class ServerLocation {
     }
     
     get host() {
-        /**
-         * "www.bbc.co.uk"
-         */
         return this.getPropertValue('host', 'localhost')
     }
     
     get hostname() {
-        /***
-         * "www.bbc.co.uk"
-         */
         this.getPropertValue('host', 'localhost')
     }
     
-    
     get href() {
-        /***
-         * "http://www.bbc.co.uk/news/education-40504754"
-         */
         this.getPropertValue('host', 'localhost')
     }
     
     get origin() {
-        /***
-         * "http://www.bbc.co.uk"
-         */
         this.getPropertValue('host', 'localhost')
     }
     
     get pathname() {
-        /***
-         * "/news/education-40504754"
-         */
         this.getPropertValue('host', 'localhost')
     }
     
@@ -53,23 +36,11 @@ class ServerLocation {
     }
     
     get protocol() {
-        /***
-         * "http:"
-         */
         return this.getPropertValue('protocol', 'http:')
     }
     
-    get reload() {
-    
-    }
-    
-    
-    get search() {
-    
-    }
-    
     static get default() {
-        return new this.type
+        return new this()
     }
     
     static get none() {
@@ -78,14 +49,6 @@ class ServerLocation {
     
     static array(...locations) {
         return locations
-    }
-    
-    static set type(otherType) {
-        this._type = otherType || ServerLocation
-    }
-    
-    static get type() {
-        return this._type
     }
 }
 
@@ -100,10 +63,6 @@ class Renderable {
     
     get label() {
         return this._label
-    }
-    
-    get model() {
-        return {}
     }
     
     set mixins(newMixings) {
@@ -161,7 +120,7 @@ class Application extends EventEmitter {
     }
     
     get controllers() {
-        return this.constructor.CONTROLLERS
+        return this.constructor.controllers
     }
     
     static get modelTypes() {
