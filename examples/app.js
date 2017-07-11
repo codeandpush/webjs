@@ -6,22 +6,30 @@ console.log('starting app...')
 class DemoModel extends Model {
     
     static get ATTR_TYPE_MAP() {
-        let atts = {category: {type:'string', demoValue: 'Cats', label:'Category', description: 'Category', placeholder: 'Category of App'},
-            label:'string',
-            url:'string',
-            group:'string'}
+        let atts = {
+            category: {
+                type: 'string',
+                demoValue: 'Cats',
+                label: 'Category',
+                description: 'Category',
+                placeholder: 'Category of App'
+            },
+            label: 'string',
+            url: 'string',
+            group: 'string'
+        }
         return _.merge(atts, Model.BASE_ATTR_TYPE_MAP)
     }
     
-    get url(){
+    get url() {
         return this.serialized.url
     }
     
-    get group(){
+    get group() {
         return this.serialized.group || this.serialized.groupLabel
     }
     
-    get category(){
+    get category() {
         return this.serialized.category
     }
 }
@@ -46,23 +54,40 @@ const TEMPLATE_EDIT_APP_MODEL = `
                     </div>
                 </div>
             <% } %>
+            <% if(attrInfo.type === 'img') { %>
+            <div class="form-group">
+                <label for="<%= infoId %>" class="col-sm-2 control-label"><%= attrInfo.description %></label>
+                
+                <div class="col-sm-10">
+                    <div class="input-group">
+                        <input type="text" class="form-control" aria-label="..." id="<%= infoId %>">
+                        <div class="input-group-btn">
+                            <button class="btn btn-default" type="button">
+                                <img height="" src="<%= images.icon.paste %>">
+                            </button>
+                            <button class="btn btn-default" type="button">Browse</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <% } %>
         <% }); %>
     </form>`
 
 class DemoAppModel extends DemoModel {
     
     static get ATTR_TYPE_MAP() {
-        let atts = {category: 'string', label:'string', url:'string', group:'string', 'thumbnail': 'string'}
+        let atts = {category: 'string', label: 'string', url: 'string', group: 'string', 'thumbnail': 'img'}
         return _.merge(atts, DemoModel.ATTR_TYPE_MAP)
     }
     
-    editorElemHtml(opts){
+    editorElemHtml(opts) {
         opts = opts || {}
         let attrMap = opts.attrMap = {}
-        for(let [attrName, attrType] of _.toPairs(this.constructor.ATTR_TYPE_MAP)){
+        for (let [attrName, attrType] of _.toPairs(this.constructor.ATTR_TYPE_MAP)) {
             let attrInfo = !_.isObject(attrType) ? {type: attrType, order: -1} : attrType
-    
-            if(!_.isObject(attrType)){
+            
+            if (!_.isObject(attrType)) {
                 attrInfo.label = attrInfo.description = attrName
                 attrInfo.type = attrType
                 attrInfo.demoValue = ""
@@ -77,23 +102,23 @@ class DemoAppModel extends DemoModel {
         return _.template(TEMPLATE_EDIT_APP_MODEL)(opts)
     }
     
-    get category(){
+    get category() {
         return 'app'
     }
     
-    get thumbnail(){
+    get thumbnail() {
         return this.serialized.thumbnail
     }
     
     static fromElem(elem, attributeNames) {
         let serialized = {_elem: elem}
-        if(_.isArray(attributeNames)){
+        if (_.isArray(attributeNames)) {
             serialized = _.merge(Model.fromElem(elem, attributeNames).serialized)
         } else {
-            for(let [attr, attrType] of _.toPairs(this.ATTR_TYPE_MAP)){
+            for (let [attr, attrType] of _.toPairs(this.ATTR_TYPE_MAP)) {
                 attrType = _.isString(attrType) ? attrType : attrType.type
                 let elem = $(`[data-key$=${attr}_${attrType}`).get(0)
-                if(!elem) continue
+                if (!elem) continue
                 serialized[attr] = elem.value
             }
         }
@@ -147,7 +172,7 @@ const APP_LIST_TEMPLATE = `
 
 class DemoPicker extends Controller {
     
-    constructor(name, opts){
+    constructor(name, opts) {
         super(name, opts)
         this._apps = [
             new DemoAppModel({
@@ -174,19 +199,19 @@ class DemoPicker extends Controller {
         ]
     }
     
-    get apps(){
+    get apps() {
         return this._apps
     }
     
-    get groups(){
+    get groups() {
         this._groups = {}
-        for(let [gn, data] of _.toPairs(_.groupBy(this.apps, (a) => a.group.toLowerCase()))){
+        for (let [gn, data] of _.toPairs(_.groupBy(this.apps, (a) => a.group.toLowerCase()))) {
             this._groups[gn] = {apps: data, label: gn, title: data[0].group}
         }
         return this._groups
     }
     
-    getTabElem(groupLabel){
+    getTabElem(groupLabel) {
         return document.getElementById(groupLabel.toLowerCase())
     }
     
@@ -201,7 +226,7 @@ class DemoPicker extends Controller {
         elem.style.backgroundColor = 'white'
         
         $elem.append($(_.template(APP_LIST_TEMPLATE)({groups: this.groups})))
-    
+        
         $elem.append($(`<nav aria-label="...">
       <ul class="pager">
         <li class="previous disabled"><a href="#"><span aria-hidden="true">&larr;</span> Older</a></li>
@@ -209,14 +234,14 @@ class DemoPicker extends Controller {
       </ul>
     </nav>`))
         
-    
+        
         $elem.append($(`
         <div class="row" style="padding: 16px; position: absolute;bottom: 16px;width: 100%;">
           <button type="button" id="add_app_btn" class="col-sx-12 btn btn-primary text-center" style="width: 100%">Add Application</button>
         </div>
         `))
         
-        $elem.ready( ()=>{
+        $elem.ready(() => {
             this.getTabElem(this.apps[0].group).classList.add('active')
         })
         return elem
@@ -230,7 +255,7 @@ class DemoView extends Controller {
     }
     
     
-    get iframe(){
+    get iframe() {
         return $(this.elem).find('iframe').get(0)
     }
     
@@ -238,7 +263,7 @@ class DemoView extends Controller {
         super.render(elem)
         
         let iframe = $(`<iframe></iframe>`).get(0)
-    
+        
         iframe.height = '100%'
         iframe.width = '100%'
         iframe.frameBorder = 0
@@ -267,8 +292,8 @@ class DemoApp extends Application {
     constructor(location) {
         super(location)
         let models = this.constructor.modelTypes
-        this.demoPicker = new DemoPicker('demo_picker', {mixins:['col-md-3', 'border-right'], tagName:'aside'})
-        this.demoView = new DemoView('demo_view', {mixins:['col-md-9', 'embed-responsive'], tagName:'div'})
+        this.demoPicker = new DemoPicker('demo_picker', {mixins: ['col-md-3', 'border-right'], tagName: 'aside'})
+        this.demoView = new DemoView('demo_view', {mixins: ['col-md-9', 'embed-responsive'], tagName: 'div'})
         
         this.addController(this.demoPicker)
         this.addController(this.demoView)
@@ -309,20 +334,21 @@ class DemoApp extends Application {
         })
     }
     
-    showNewAppModal(){
-        return this.showModal({title:'New Application',
-        body: _.template(this.constructor.TEMPLATE_MODAL_BODY)(),
+    showNewAppModal() {
+        return this.showModal({
+            title: 'New Application',
+            body: _.template(this.constructor.TEMPLATE_MODAL_BODY)(),
         }, DemoAppModel)
     }
     
-    addNewDemoApp(newApp){
+    addNewDemoApp(newApp) {
         console.log('adding new app:', newApp)
         this.demoPicker.apps.push(newApp)
-    
+        
         this.detachListeners()
         $(this.demoPicker.elem).empty()
         this.demoPicker.render(this.demoPicker.elem)
-    
+        
         this.attachListeners()
     }
 }
@@ -342,13 +368,14 @@ app.when('add_app_btn_click', () => {
     console.log('add application')
     app.showNewAppModal()
         .then((newApp) => {
-            if(!_.isObject(newApp)) return
+            if (!_.isObject(newApp)) return
             app.addNewDemoApp(newApp)
         })
 })
 
 app.when('share_app', (theApp) => {
-    app.showModal({title:`Share: ${theApp && theApp.title || 'App' }`,
+    app.showModal({
+        title: `Share: ${theApp && theApp.title || 'App' }`,
         body: `<h3><a href="${theApp.url}" target="_blank" id="share_app_click" class="text-center" style="width: 100%">${theApp.url}</a></h3>`,
         successBtnId: 'share_app_click',
         hideFooter: true
@@ -359,16 +386,17 @@ app.when('share_app', (theApp) => {
 })
 
 app.when('edit_app', (theApp) => {
-    app.showModal({title:`Edit: ${theApp && theApp.title || 'App' }`,
+    app.showModal({
+        title: `Edit: ${theApp && theApp.title || 'App' }`,
         body: theApp.editorElemHtml(),
         contextualClass: 'info',
     }, DemoAppModel)
         .then((newApp) => {
-            if(!_.isObject(newApp)) return
+            if (!_.isObject(newApp)) return
             
             
             let dApp = _.find(app.demoPicker.apps, {url: newApp.url})
-            if(_.isObject(dApp)){
+            if (_.isObject(dApp)) {
                 dApp.serialized = newApp.serialized
                 app.detachListeners()
                 $(app.demoPicker.elem).empty()
@@ -380,7 +408,7 @@ app.when('edit_app', (theApp) => {
 
 app.when('click', (model) => {
     let demoView = app.controllers['demo_view']
-    if(model.category === 'app' && _.isString(model.url)) {
+    if (model.category === 'app' && _.isString(model.url)) {
         demoView.src = model.url
     }
 })
@@ -390,6 +418,7 @@ app.renderToDocument(document)
 $(() => {
     app.attachListeners()
     _.templateSettings.imports.app = app
+    _.templateSettings.imports.images = images
 })
 
 DemoApp.TEMPLATE_MODAL_BODY = `<form class="form-horizontal">
