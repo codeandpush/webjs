@@ -12,6 +12,8 @@ const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 
 const app = express()
+
+app.set('view engine', 'ejs')
 app.use(logger('":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
@@ -21,7 +23,7 @@ app.get('/', function(req, res) {
     res.sendFile(path.join(__dirname, 'dashboard','/index.html'))
 });
 
-app.use(express.static(path.join(__dirname, 'dashboard','../')))
+app.use(express.static(path.join(__dirname, '../')))
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

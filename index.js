@@ -16,8 +16,8 @@ class ViewMixin {
     }
 }
 
-const mixins = (...mixins) => {
-    let base = class _Combined extends Whenable {
+const mixins = (baseClass, ...mixins) => {
+    let base = class _Combined extends baseClass {
         constructor (...args) {
             super(...args)
             mixins.forEach((mixin) => {
@@ -41,21 +41,12 @@ const mixins = (...mixins) => {
     return base
 }
 
-class Colored {
-    init()     { this._color = "white" }
-    get color ()       { return this._color }
-    set color (v)      { this._color = v }
-}
-
-
-const EventEmitter = Object//Emitter == 'undefined' ? Emitter : require('./examples/emitter')
+const EventEmitter = Emitter
 
 class Whenable extends EventEmitter {
 
-    constructor(potentials) {
+    constructor() {
         super()
-        this.potentials = potentials || {}
-
     }
 
     when(...args) {
@@ -84,9 +75,10 @@ class Whenable extends EventEmitter {
 
 //Whenable.potentiallyHighest()
 
-class Controller extends mixins(ViewMixin) {
+class Controller extends mixins(Whenable, ViewMixin) {
 
-    init(name, opts) {
+    constructor(name, opts) {
+        super()
         this._label = name
         this.superClassName = opts.superClassName || null
         this._name = name
@@ -327,9 +319,10 @@ const TEMPLATE_EDIT_APP_MODEL = `
         <% }); %>
     </form>`
 
-class Model extends Controller {
+class Model extends mixins(Whenable, ViewMixin) {
 
-    init(serialized) {
+    constructor(serialized) {
+        super()
         this.serialized = serialized || {}
     }
 
@@ -409,7 +402,13 @@ class Model extends Controller {
     static fromElem(elem, attributeNames) {
         let serialized = {_elem: elem}
         if (_.isArray(attributeNames)) {
-            serialized = _.merge(this.fromElem(elem, attributeNames).serialized, serialized)
+            for (let attr of attributeNames) {
+                let dataKey = `data-${attr}`
+                let dataValue = elem.attributes[dataKey] || null
+                if (dataValue !== null) {
+                    serialized[attr] = dataValue.nodeValue
+                }
+            }
         } else {
             for (let [attr, attrType] of _.toPairs(this.ATTR_TYPE_MAP)) {
                 attrType = _.isString(attrType) ? attrType : attrType.type
@@ -417,7 +416,7 @@ class Model extends Controller {
                 if (!$el) continue
                 serialized[attr] = $el.value
             }
-        }
+       }
         return new this(serialized)
     }
 }
@@ -526,7 +525,7 @@ class Server extends Whenable {
 
 Application.root = new Server(ServerLocation.default)
 
-if(module === require.main){
+//if(module === require.main){
     // let sl = ServerLocation.default
     // console.log(sl)
     // sl.implode = 'interesting'
@@ -537,4 +536,4 @@ if(module === require.main){
     //const time_in_utc = job.my_edt_date = 'UTC'
 
     
-}
+//}

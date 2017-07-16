@@ -105,21 +105,21 @@ class DemoPicker extends Controller {
                 title: 'CatZillar 5000', html: '<h6>CATS RULE</h6>',
                 label: 'catzillar', description: 'all cat info in one place',
                 url: 'http://edey.ng',
-                thumbnail: '../examples/app_icon2.ico',
+                thumbnail: '/examples/dashboard/app_icon2.ico',
             }),
             new DemoAppModel({
                 groupLabel: 'Cats',
                 title: 'Kitty Land', html: '<h6>Kitty RULE</h6>',
                 label: 'kitty_land', description: 'cat lips catalogue',
                 url: 'https://en.wikipedia.org/wiki/Main_Page',
-                thumbnail: '../examples/app_icon1.ico',
+                thumbnail: '/examples/dashboard/app_icon1.ico',
             }),
             new DemoAppModel({
                 groupLabel: 'Dogs',
                 title: 'Dog World', html: '<h6>Dogs RULE</h6>',
                 label: 'dog_world', description: 'Different breeds of dog',
                 url: 'https://en.wikipedia.org/wiki/Dog',
-                thumbnail: '../examples/app_icon1.ico',
+                thumbnail: '/examples/dashboard/app_icon1.ico',
             }),
         ]
     }
