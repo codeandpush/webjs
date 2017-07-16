@@ -6,8 +6,8 @@ RUN mkdir -p /usr/src/app
 # Bundle app source
 COPY . /usr/src/app
 
-WORKDIR /usr/src/app/examples
-RUN npm install
+WORKDIR /usr/src/app
+RUN npm install /usr/src/app/examples
 
 EXPOSE 11616
 
