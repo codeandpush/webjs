@@ -1,62 +1,53 @@
 /**
  * Created by anthony on 06/07/2017.
  */
-class ServerLocation {
-
-    constructor(serialized) {
-        this.serialized = serialized || {}
-        this['Hello World?'] = 'hi'
+class ViewMixin {
+    
+    init(){
+    
     }
-
-    getPropertValue(propertyName, defaultValue) {
-        return this.serialized[propertyName] || defaultValue
+    
+    get view(){
+    
     }
-
-    get host() {
-        return this.getPropertValue('host', 'localhost')
-    }
-
-    set implode(attrName){
-        let value = this[attrName]
-        return value
-    }
-
-    get hostname() {
-        this.getPropertValue('host', 'localhost')
-    }
-
-    get href() {
-        this.getPropertValue('host', 'localhost')
-    }
-
-    get origin() {
-        this.getPropertValue('host', 'localhost')
-    }
-
-    get pathname() {
-        this.getPropertValue('host', 'localhost')
-    }
-
-    get port() {
-        return this.getPropertValue('port', '11616')
-    }
-
-    get protocol() {
-        return this.getPropertValue('protocol', 'http:')
-    }
-
-    static get default() {
-        return new this()
-    }
-
-    static get none() {
-        return null
-    }
-
-    static array(...locations) {
-        return locations
+    
+    set view(newView){
+    
     }
 }
+
+const mixins = (...mixins) => {
+    let base = class _Combined extends Whenable {
+        constructor (...args) {
+            super(...args)
+            mixins.forEach((mixin) => {
+                mixin.prototype.init.call(this)
+            })
+        }
+    }
+    let copyProps = (target, source) => {
+        Object.getOwnPropertyNames(source)
+            .concat(Object.getOwnPropertySymbols(source))
+            .forEach((prop) => {
+                if (prop.match(/^(?:constructor|prototype|arguments|caller|name|bind|call|apply|toString|length)$/))
+                    return
+                Object.defineProperty(target, prop, Object.getOwnPropertyDescriptor(source, prop))
+            })
+    }
+    mixins.forEach((mixin) => {
+        copyProps(base.prototype, mixin.prototype)
+        copyProps(base, mixin)
+    })
+    return base
+}
+
+class Colored {
+    init()     { this._color = "white" }
+    get color ()       { return this._color }
+    set color (v)      { this._color = v }
+}
+
+
 const EventEmitter = Object//Emitter == 'undefined' ? Emitter : require('./examples/emitter')
 
 class Whenable extends EventEmitter {
@@ -71,6 +62,20 @@ class Whenable extends EventEmitter {
         //
         return super.on(...args)
     }
+    
+    whenOnce(...args) {
+        //
+        return super.once(...args)
+    }
+    
+    and(...args) {
+        //
+        return super.once(...args)
+    }
+    
+    whenThis(...args){
+        return this.when(...args)
+    }
 
     whenLast(){
 
@@ -79,27 +84,35 @@ class Whenable extends EventEmitter {
 
 //Whenable.potentiallyHighest()
 
-class Controller extends Whenable {
+class Controller extends mixins(ViewMixin) {
 
-    constructor(name, opts) {
-        super()
+    init(name, opts) {
         this._label = name
-        this.superClassName = superClassName || null
+        this.superClassName = opts.superClassName || null
         this._name = name
-        this.tagName = (opts || {}).tagName || 'div'
-        this.mixins = opts.mixins || []
+        this._tagName = opts.tagName
+        this._elemClasses = opts.mixins || []
+    }
+    
+    get tagName(){
+        let elem = this.elem
+        if(elem) return elem.tagName
+        
+        if(this._tagName) return this._tagName
+        
+        return 'div'
     }
 
     get label() {
         return this._label
     }
 
-    set mixins(newMixings) {
-        this._mixins = newMixings
+    set elemClasses(newMixings) {
+        this._elemClasses = newMixings
     }
 
-    get mixins() {
-        return this._mixins
+    get elemClasses() {
+        return this._elemClasses
     }
 
     static get BASE_SELECTOR_ACTION_MAP() {
@@ -111,7 +124,7 @@ class Controller extends Whenable {
     }
 
     render(elem) {
-        for (let cls of this.mixins) {
+        for (let cls of this.elemClasses) {
             elem.classList.add(cls)
         }
         return elem
@@ -316,8 +329,7 @@ const TEMPLATE_EDIT_APP_MODEL = `
 
 class Model extends Controller {
 
-    constructor(serialized) {
-        super(serialized)
+    init(serialized) {
         this.serialized = serialized || {}
     }
 
@@ -435,6 +447,61 @@ Application.MODAL_TEMPLATE = `
             </div>
         </div>
 `
+class ServerLocation extends Model {
+    
+    init(serialized) {
+        this['Hello World?'] = 'hi'
+    }
+    
+    getPropertValue(propertyName, defaultValue) {
+        return this.serialized[propertyName] || defaultValue
+    }
+    
+    get host() {
+        return this.getPropertValue('host', 'localhost')
+    }
+    
+    set implode(attrName){
+        let value = this[attrName]
+        return value
+    }
+    
+    get hostname() {
+        this.getPropertValue('host', 'localhost')
+    }
+    
+    get href() {
+        this.getPropertValue('host', 'localhost')
+    }
+    
+    get origin() {
+        this.getPropertValue('host', 'localhost')
+    }
+    
+    get pathname() {
+        this.getPropertValue('host', 'localhost')
+    }
+    
+    get port() {
+        return this.getPropertValue('port', '11616')
+    }
+    
+    get protocol() {
+        return this.getPropertValue('protocol', 'http:')
+    }
+    
+    static get default() {
+        return new this()
+    }
+    
+    static get none() {
+        return null
+    }
+    
+    static array(...locations) {
+        return locations
+    }
+}
 
 class Server extends Whenable {
 
@@ -460,14 +527,14 @@ class Server extends Whenable {
 Application.root = new Server(ServerLocation.default)
 
 if(module === require.main){
-    let sl = ServerLocation.default
-    console.log(sl)
-    sl.implode = 'interesting'
-    let my = 'yes'
-    let res = my &&  (sl.implode = 'Hello World?') || 'no'
-    console.log('result:', my)
+    // let sl = ServerLocation.default
+    // console.log(sl)
+    // sl.implode = 'interesting'
+    // let my = 'yes'
+    // let res = my &&  (sl.implode = 'Hello World?') || 'no'
+    // console.log('result:', my)
 
     //const time_in_utc = job.my_edt_date = 'UTC'
 
-
+    
 }
