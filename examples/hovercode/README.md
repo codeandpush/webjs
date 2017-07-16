@@ -1,0 +1,1 @@
+When i hover over a word, i would like the definition to show up

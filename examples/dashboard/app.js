@@ -34,45 +34,6 @@ class DemoModel extends Model {
     }
 }
 
-const TEMPLATE_EDIT_APP_MODEL = `
-    <form class="form-horizontal">
-        <% _.forEach(attrMapByPriority, function(attrInfo){ %>
-            <% var infoId = group+'_'+app+'_'+attrInfo.label+'_'+attrInfo.type%>
-            <% if(attrInfo.type === 'string') { %>
-                <div class="form-group">
-                <label for="<%= infoId %>" class="col-sm-2 control-label"><%= attrInfo.description %></label>
-                    <div class="col-sm-10">
-                        <input type="text" class="form-control" id="<%= infoId %>" data-key="<%= infoId %>" value="<%= attrInfo.value %>" placeholder="<%= attrInfo.placeholder %>">
-                    </div>
-                </div>
-            <% } %>
-            <% if(attrInfo.type === 'text') { %>
-                <div class="form-group">
-                <label for="<%= infoId %>" class="col-sm-2 control-label"><%= attrInfo.description %></label>
-                    <div class="col-sm-10">
-                        <textarea class="form-control col-sm-10" id="<%= infoId %>" data-key="<%= infoId %>" placeholder="<%= attrInfo.placeholder %>" rows="3"><%= attrInfo.value %></textarea>
-                    </div>
-                </div>
-            <% } %>
-            <% if(attrInfo.type === 'img') { %>
-            <div class="form-group">
-                <label for="<%= infoId %>" class="col-sm-2 control-label"><%= attrInfo.description %></label>
-                
-                <div class="col-sm-10">
-                    <div class="input-group">
-                        <input type="text" class="form-control" aria-label="..." id="<%= infoId %>">
-                        <div class="input-group-btn">
-                            <button class="btn btn-default" type="button">
-                                <img height="" src="<%= images.icon.paste %>">
-                            </button>
-                            <button class="btn btn-default" type="button">Browse</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <% } %>
-        <% }); %>
-    </form>`
 
 class DemoAppModel extends DemoModel {
     
@@ -81,48 +42,12 @@ class DemoAppModel extends DemoModel {
         return _.merge(atts, DemoModel.ATTR_TYPE_MAP)
     }
     
-    editorElemHtml(opts) {
-        opts = opts || {}
-        let attrMap = opts.attrMap = {}
-        for (let [attrName, attrType] of _.toPairs(this.constructor.ATTR_TYPE_MAP)) {
-            let attrInfo = !_.isObject(attrType) ? {type: attrType, order: -1} : attrType
-            
-            if (!_.isObject(attrType)) {
-                attrInfo.label = attrInfo.description = attrName
-                attrInfo.type = attrType
-                attrInfo.demoValue = ""
-                attrInfo.placeholder = attrName
-            }
-            attrInfo.value = this[attrName]
-            attrMap[attrName] = attrInfo
-        }
-        opts.app = this.name
-        opts.group = this.group
-        opts.attrMapByPriority = _.sortBy(opts.attrMap, (m) => m.order)
-        return _.template(TEMPLATE_EDIT_APP_MODEL)(opts)
-    }
-    
     get category() {
         return 'app'
     }
     
     get thumbnail() {
         return this.serialized.thumbnail
-    }
-    
-    static fromElem(elem, attributeNames) {
-        let serialized = {_elem: elem}
-        if (_.isArray(attributeNames)) {
-            serialized = _.merge(Model.fromElem(elem, attributeNames).serialized)
-        } else {
-            for (let [attr, attrType] of _.toPairs(this.ATTR_TYPE_MAP)) {
-                attrType = _.isString(attrType) ? attrType : attrType.type
-                let elem = $(`[data-key$=${attr}_${attrType}`).get(0)
-                if (!elem) continue
-                serialized[attr] = elem.value
-            }
-        }
-        return new this(serialized)
     }
 }
 
