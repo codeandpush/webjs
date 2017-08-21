@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/lodash/4.17.4/lodash.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.8/ace.js"></script>
+    <style>
+        body,html {
+            width: 100%;
+            height: 100%;
+        }
+
+        .border-bottom {
+            border-bottom: thin solid #f0f0f0;
+        }
+
+        .border-right {
+            border-right: thin solid #f0f0f0;
+        }
+
+        .no-padgin {
+            padding: 0;
+            margin: 0;
+        }
+
+        .position-relative {
+            position: relative;
+        }
+
+        .padding-tiny{
+            padding: 0.1cm;
+        }
+
+        .margin-small{
+            margin: 0.2cm;
+        }
+
+        .width-medium{
+            width: 160px;
+        }
+
+        .top-right {
+            position: absolute;
+            top: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .color-whitesmoke{
+            color: whitesmoke;
+        }
+
+        .color-grey{
+            color: darkgrey;
+        }
+
+        .display-inline-block{
+            display: inline-block;
+        }
+
+        #editor {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+<div style="height: 5%; width: 100%" class="position-relative">
+    <h2 class="display-inline-block margin-small color-grey">Fiddle</h2>
+    <button class="btn btn-success margin-small pull-right width-medium" id="run_btn">Run (Ctrl+R)</button>
+</div>
+
+<main style="height: 95%">
+
+    <div class="row no-padgin" style="height: 50%">
+        <div class="col-md-6 no-padgin border-right border-bottom position-relative" style="height: 100%;">
+            <div id="editor-html" style="height: 100%;"></div>
+            <span class="top-right color-whitesmoke padding-tiny">HTML</span>
+        </div>
+
+        <div class="col-md-6 no-padgin border-bottom position-relative" style="height: 100%">
+            <div id="editor-css" style="height: 100%"></div>
+            <span class="top-right color-whitesmoke padding-tiny">CSS</span>
+        </div>
+    </div>
+
+    <div class="row no-padgin" style="height: 50%">
+        <div class="col-md-6 border-right no-padgin position-relative" style="height: 100%;">
+            <div id="editor-js" style="height: 100%"></div>
+            <span class="top-right color-whitesmoke padding-tiny">Javascript</span>
+        </div>
+
+        <div class="col-md-6 no-padgin position-relative" style="height: 100%">
+            <iframe id="result" width="100%" height="100%" frameborder="0" class="no-padgin" style="background-color: #f0f0f0">
+            </iframe>
+            <span class="top-right color-grey padding-tiny">Result</span>
+        </div>
+    </div>
+</main>
+
+<script>
+    class EventEmitter {
+        constructor(){
+            this.listeners = {}
+        }
+
+        on(eventName, callback){
+            let callbacks = this.listeners[eventName] = this.listeners[eventName] || []
+            callbacks.push(callback)
+        }
+
+        emit(eventName, ...args){
+            let callbacks = this.listeners[eventName] || []
+            for(let cb of callbacks){
+                cb(...args)
+            }
+        }
+    }
+
+    class Fiddle extends EventEmitter {
+
+        setupEditor(editorId, mode) {
+            var editor = ace.edit(editorId);
+            editor.setTheme('ace/theme/monokai');
+            editor.getSession().setMode(`ace/mode/${mode}`);
+            return editor
+        }
+
+        get resultFrame(){
+            return $('#result').get(0)
+        }
+
+        getTemplate(){
+            if(this._template) return Promise.resolve(this._template)
+
+            return new Promise((resolve, reject) => {
+                $.get('_template.html', function(data) {
+                    this._template = data
+                    resolve(data)
+                }).fail(function(error) {
+                    reject(error)
+                })
+            })
+        }
+
+        updateResult(){
+            this.getTemplate()
+                .then((template) => {
+                    this.resultFrame.srcdoc = _.template(template)({
+                        css: this.cssEditor.getValue(),
+                        js: this.jsEditor.getValue(),
+                        body: this.htmlEditor.getValue()})
+                })
+        }
+
+        init(){
+            this.jsEditor = this.setupEditor('editor-js', 'javascript')
+            this.cssEditor = this.setupEditor('editor-css', 'css')
+            this.htmlEditor = this.setupEditor('editor-html', 'html')
+
+            $('#run_btn').on('click', () => {
+                this.emit('click.run_btn')
+            })
+
+            $(document).on('keyup', (e) => {
+                if (e.key === 'r' && e.ctrlKey) {
+                    this.emit('keyup.run')
+                }
+            })
+        }
+    }
+
+    const app = new Fiddle()
+    app.init()
+
+    app.on('click.run_btn', () => {
+        app.updateResult()
+    })
+
+    app.on('keyup.run', () => {
+        app.updateResult()
+    })
+
+</script>
+</body>
+</html>
